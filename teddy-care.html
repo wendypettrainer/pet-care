@@ -1583,7 +1583,8 @@ function showPetForm(petId){
         <textarea id="petFormNotes" placeholder="飲食/藥物/過敏/特殊需求...">${editing?escapeHtml(editing.notes||''):''}</textarea>
       </div></div>
       ${editing ? `
-        <div style="margin-top:18px; padding-top:14px; border-top:1px dashed var(--border);">
+        <div style="margin-top:18px; padding-top:14px; border-top:1px dashed var(--border); display:flex; flex-direction:column; gap:8px;">
+          <button type="button" class="secondary" onclick="importFromShareLink('${editing.id}')" style="width:100%; padding:10px;">🔗 從現有客戶連結匯入（換裝置時用）</button>
           <button type="button" class="secondary" onclick="clearPetRecords('${editing.id}')" style="width:100%; padding:10px; color:#c44; border-color:#c44;">🗑️ 清空這隻寵物的所有紀錄與照片（保留設定）</button>
         </div>
       ` : ''}
@@ -1593,6 +1594,58 @@ function showPetForm(petId){
     <button type="button" class="secondary" onclick="renderPetList()">← 返回</button>
     <button type="button" onclick="savePetForm('${editing?editing.id:''}')">${editing?'儲存':'新增'}</button>
   `;
+}
+
+// 從現有客戶連結匯入（跨裝置接續用）
+async function importFromShareLink(petId){
+  const input = prompt('貼上現有客戶連結（或 Gist ID）：\n例如 https://...?view=abc123\n或 abc123');
+  if(!input) return;
+  // 解析 gistId：可吃完整 URL 或純 ID
+  let gistId = input.trim();
+  const m = gistId.match(/[?&]view=([a-f0-9]+)/i);
+  if(m) gistId = m[1];
+  if(!/^[a-f0-9]{20,}$/i.test(gistId)){
+    toast('連結格式不對，無法解析 Gist ID');
+    return;
+  }
+  toast('匯入中…');
+  try{
+    const cloud = await fetchGist(gistId);
+    if(!cloud || !cloud.records){
+      throw new Error('Gist 內容格式不對');
+    }
+    const data = ensureData();
+    const pet = data.pets.find(p=>p.id===petId);
+    if(!pet) throw new Error('找不到寵物');
+    const localCount = Object.keys(data.records[petId] || {}).length;
+    const cloudCount = Object.keys(cloud.records).length;
+    if(localCount > 0){
+      const ok = confirm(
+        `本地有 ${localCount} 天紀錄，雲端有 ${cloudCount} 天。\n` +
+        `匯入會用雲端資料覆蓋本地紀錄與寵物設定。\n` +
+        `照片不會被影響（雲端不存照片）。\n\n繼續？`
+      );
+      if(!ok) return;
+    }
+    // 套用：寵物設定（雲端優先）+ gistId + records
+    pet.gistId = gistId;
+    if(cloud.pet){
+      if(cloud.pet.name) pet.name = cloud.pet.name;
+      if(cloud.pet.species) pet.species = cloud.pet.species;
+      if(cloud.pet.owner !== undefined) pet.owner = cloud.pet.owner;
+      if(cloud.pet.notes !== undefined) pet.notes = cloud.pet.notes;
+    }
+    data.records[petId] = cloud.records;
+    saveData(data);
+    refreshPetUI();
+    loadDay($('date').value);
+    loadPhotos();
+    renderDateHistory();
+    renderPetList();
+    toast(`✅ 已匯入 ${cloudCount} 天紀錄`);
+  } catch(e){
+    toast('❌ 匯入失敗：' + e.message);
+  }
 }
 
 function clearPetRecords(petId){
