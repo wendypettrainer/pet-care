@@ -967,7 +967,8 @@ function showSaveStatus(msg, color){
   }, 2500);
 }
 
-// 手動存檔（給使用者明確的掌控感）— 存完自動清空表單
+// 手動存檔：寫入歷史 + 立刻同步雲端，但「不清空表單」
+// 原因：清空+autosave 的組合會導致同日續填時吃掉先前資料
 function manualSave(){
   const pet = getCurrentPet();
   const date = $('date').value;
@@ -975,13 +976,11 @@ function manualSave(){
   const records = getRecords();
   if(records[date]){
     toast(`✅ 已存檔 ${pet.name} ${date}`);
-    showSaveStatus(`✅ 已存檔 ${date}，表單已清空`);
-    // 清空表單（programmatic 改值不會觸發 input/change，所以不會被 auto-save 蓋掉）
-    clearFormFields();
-    // 立刻觸發雲端同步（如果已設定 PAT + gistId）
+    showSaveStatus(`✅ 已存檔 ${date}（表單保留，可繼續補充）`);
+    // 立刻觸發雲端同步
     if(_autoSyncTimer) clearTimeout(_autoSyncTimer);
     autoSyncToGist();
-    // 重新整理 chips
+    // 更新 chips（這天的紀錄狀態變了）
     renderDateHistory();
   } else {
     toast('今日表單沒有資料可存');
