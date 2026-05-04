@@ -117,6 +117,28 @@
   .num-with-unit input{flex:1;}
   .num-with-unit .unit{font-size:14px; color:var(--muted);}
 
+  /* 日期歷史 chips */
+  .date-history{
+    display:flex; gap:6px; margin:8px 0 12px;
+    overflow-x:auto; padding-bottom:4px;
+    -webkit-overflow-scrolling:touch;
+  }
+  .date-history:empty{ margin:0; }
+  .date-chip{
+    flex:0 0 auto; white-space:nowrap;
+    padding:5px 12px; font-size:12px;
+    background:var(--input-bg); border:1px solid var(--border);
+    border-radius:14px; cursor:pointer; color:var(--muted);
+    font-family:inherit;
+  }
+  .date-chip.active{
+    background:var(--accent); color:white; border-color:var(--accent);
+    font-weight:700;
+  }
+  .date-chip.today-empty{
+    background:white; border-style:dashed; color:var(--accent-soft);
+  }
+
   /* 嘔吐有/無 收合控制 */
   #vomitDetails{display:none; margin-top:10px;}
   #bodySection:has(input[name="vomit_status"][value="有"]:checked) #vomitDetails{
@@ -463,7 +485,7 @@
     </div>
   </div>
 
-  <div id="historyHint" style="font-size:12px; color:var(--muted); margin-bottom:10px; text-align:right;"></div>
+  <div id="dateHistory" class="date-history"></div>
 
   <!-- 飲食 / 飲水 / 零食 -->
   <div class="section">
@@ -609,8 +631,7 @@
   </div>
 
   <div class="actions">
-    <button id="reset-btn" class="secondary" type="button" onclick="resetForm()">清空當日</button>
-    <button type="button" onclick="manualSave()">💾 存檔今日</button>
+    <button type="button" onclick="manualSave()" style="flex:1;">💾 存檔今日</button>
   </div>
 
   <div class="actions" style="margin-top:8px;">
@@ -942,7 +963,7 @@ function showSaveStatus(msg, color){
   }, 2500);
 }
 
-// 手動存檔（給使用者明確的掌控感）
+// 手動存檔（給使用者明確的掌控感）— 存完自動清空表單
 function manualSave(){
   const pet = getCurrentPet();
   const date = $('date').value;
@@ -950,21 +971,57 @@ function manualSave(){
   const records = getRecords();
   if(records[date]){
     toast(`✅ 已存檔 ${pet.name} ${date}`);
-    showSaveStatus(`✅ 已手動存檔 ${date}`);
+    showSaveStatus(`✅ 已存檔 ${date}，表單已清空`);
+    // 清空表單（programmatic 改值不會觸發 input/change，所以不會被 auto-save 蓋掉）
+    clearFormFields();
+    // 立刻觸發雲端同步（如果已設定 PAT + gistId）
+    if(_autoSyncTimer) clearTimeout(_autoSyncTimer);
+    autoSyncToGist();
+    // 重新整理 chips
+    renderDateHistory();
   } else {
     toast('今日表單沒有資料可存');
     showSaveStatus('⚠️ 今日無資料，未存檔', '#c08000');
   }
 }
 function updateHistoryHint(){
+  // 已被 renderDateHistory 取代，保留空殼避免老程式呼叫出錯
+  renderDateHistory();
+}
+
+let _lastChipsKey = null;
+function renderDateHistory(){
+  const el = $('dateHistory');
+  if(!el) return;
   const records = getRecords();
   const dates = Object.keys(records).sort().reverse();
-  const hint = $('historyHint');
-  if(dates.length === 0){
-    hint.textContent = '';
-  } else {
-    hint.textContent = `📂 已存 ${dates.length} 天紀錄（最早 ${dates[dates.length-1]}）`;
+  const today = new Date().toISOString().slice(0,10);
+  const currentDate = $('date').value;
+  // 快取：避免每次按鍵都重繪（會打斷 chips 的水平捲動位置）
+  const key = JSON.stringify([dates, currentDate, today]);
+  if(_lastChipsKey === key) return;
+  _lastChipsKey = key;
+  let html = '';
+  // 若今天還沒有紀錄，顯示「今天 (空)」
+  if(!dates.includes(today)){
+    const cls = `date-chip today-empty ${currentDate===today?'active':''}`;
+    html += `<button type="button" class="${cls}" onclick="switchToDate('${today}')">今天 (空)</button>`;
   }
+  html += dates.map(d => {
+    const dt = new Date(d + 'T00:00:00');
+    const w = ['日','一','二','三','四','五','六'][dt.getDay()];
+    const isCurrent = d === currentDate;
+    const isToday = d === today;
+    return `<button type="button" class="date-chip ${isCurrent?'active':''}" onclick="switchToDate('${d}')">${dt.getMonth()+1}/${dt.getDate()} 週${w}${isToday?' (今)':''}</button>`;
+  }).join('');
+  el.innerHTML = html;
+}
+
+function switchToDate(date){
+  $('date').value = date;
+  loadDay(date);
+  loadPhotos();
+  renderDateHistory();
 }
 
 // === 多日報告 ===
@@ -1129,18 +1186,13 @@ async function gistApi(method, path, body){
   return res.json();
 }
 
-async function syncToGist(){
-  const pet = getCurrentPet();
-  if(!pet){ toast('沒有寵物'); return; }
-  if(!getPat()){ openPatSetup(); return; }
-
+// 純上傳邏輯（無 UI），給 manual 和 auto 共用
+async function _doSyncToGist(pet){
   const data = getData();
   const records = data.records[pet.id] || {};
   if(Object.keys(records).length === 0){
-    toast(`${pet.name} 還沒有紀錄`);
-    return;
+    throw new Error('還沒有紀錄');
   }
-
   const payload = {
     version: 1,
     pet: { name:pet.name, species:pet.species, owner:pet.owner||'', notes:pet.notes||'' },
@@ -1149,35 +1201,78 @@ async function syncToGist(){
   };
   const fileName = `${pet.name || 'pet'}_照護紀錄.json`;
   const content = JSON.stringify(payload, null, 2);
+  let gistId = pet.gistId;
+  if(!gistId){
+    const result = await gistApi('POST', '/gists', {
+      description:`${pet.name} 照護紀錄（由 Wendy 維護）`,
+      public:false,
+      files:{ [fileName]:{ content } }
+    });
+    gistId = result.id;
+    pet.gistId = gistId;
+    saveData(data);
+  } else {
+    await gistApi('PATCH', `/gists/${gistId}`, {
+      files:{ [fileName]:{ content } }
+    });
+  }
+  return location.origin + location.pathname + `?view=${gistId}`;
+}
 
+// 手動上傳（含完整 UI 回饋）
+async function syncToGist(){
+  const pet = getCurrentPet();
+  if(!pet){ toast('沒有寵物'); return; }
+  if(!getPat()){ openPatSetup(); return; }
   toast('上傳中…');
   try{
-    let gistId = pet.gistId;
-    if(!gistId){
-      const result = await gistApi('POST', '/gists', {
-        description:`${pet.name} 照護紀錄（由 Wendy 維護）`,
-        public:false,
-        files:{ [fileName]:{ content } }
-      });
-      gistId = result.id;
-      pet.gistId = gistId;
-      saveData(data);
-    } else {
-      await gistApi('PATCH', `/gists/${gistId}`, {
-        files:{ [fileName]:{ content } }
-      });
-    }
-    const url = location.origin + location.pathname + `?view=${gistId}`;
+    const url = await _doSyncToGist(pet);
     showShareLinkResult(pet, url);
   } catch(e){
     if(String(e.message).includes('Bad credentials') || String(e.message).includes('401')){
       toast('Token 失效，請重設');
       setPat('');
       openPatSetup();
+    } else if(e.message === '還沒有紀錄'){
+      toast(`${pet.name} 還沒有紀錄`);
     } else {
       toast('❌ 上傳失敗：' + e.message);
     }
   }
+}
+
+// === 自動背景同步 ===
+let _autoSyncTimer = null;
+let _autoSyncing = false;
+
+function scheduleAutoSync(){
+  // 每次改動都重排定時器（debounce 15 秒）
+  if(_autoSyncTimer) clearTimeout(_autoSyncTimer);
+  _autoSyncTimer = setTimeout(autoSyncToGist, 15000);
+}
+
+async function autoSyncToGist(){
+  if(_autoSyncing) return;
+  const pet = getCurrentPet();
+  if(!pet) return;
+  // 條件：必須有 PAT + 寵物已經做過第一次上傳（有 gistId）
+  if(!getPat() || !pet.gistId) return;
+  _autoSyncing = true;
+  showSaveStatus('🔄 同步客戶連結中…');
+  try{
+    await _doSyncToGist(pet);
+    showSaveStatus(`✅ 已同步 ${new Date().toLocaleTimeString('zh-TW',{hour12:false,hour:'2-digit',minute:'2-digit'})}`);
+  } catch(e){
+    if(String(e.message).includes('Bad credentials')){
+      showSaveStatus('⚠️ Token 失效，請重新上傳', '#c08000');
+    } else {
+      showSaveStatus('⚠️ 同步失敗，自動重試中', '#c08000');
+      // 60 秒後重試一次
+      setTimeout(()=>{ _autoSyncing = false; scheduleAutoSync(); }, 60000);
+      return;
+    }
+  }
+  _autoSyncing = false;
 }
 
 async function fetchGist(gistId){
@@ -1253,7 +1348,8 @@ function showShareLinkResult(pet, url){
       </div>
       <p style="font-size:12px; color:var(--muted); margin-top:14px; line-height:1.6;">
         ✓ 客戶之後每次點同一個連結，會看到你最新上傳的累積紀錄<br>
-        ✓ 你下次按「上傳客戶連結」會更新這個 URL 的內容（URL 不變）
+        ✓ <b>此後你的所有改動會自動同步到這個連結</b>（停手 15 秒後背景上傳）<br>
+        ✓ URL 不變，客戶不用換
       </p>
     </div>
   `;
@@ -1725,14 +1821,16 @@ window.addEventListener('DOMContentLoaded', ()=>{
     loadPhotos();
   });
 
-  // 自動儲存（排除寵物彈窗內的編輯）
+  // 自動儲存 + 自動同步（排除寵物彈窗內的編輯）
   document.addEventListener('input', (e)=>{
     if(e.target.closest('#petModal')) return;
     saveCurrentDay();
+    scheduleAutoSync();
   });
   document.addEventListener('change', (e)=>{
     if(e.target.closest('#petModal')) return;
     saveCurrentDay();
+    scheduleAutoSync();
   });
 });
 </script>
