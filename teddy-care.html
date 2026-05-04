@@ -1281,15 +1281,11 @@ async function autoSyncToGist(){
 
 async function fetchGist(gistId){
   // 客戶端可以匿名讀 secret gist（有 ID 就行）
-  // 強制不使用任何快取（GitHub API 預設會被瀏覽器/CDN 快取 60 秒，導致客戶重整看到舊版）
+  // 防快取策略（避免觸發 CORS preflight，只用「簡單請求」+ URL 時間戳 + cache:no-store）
   const cacheBust = Date.now();
   const res = await fetch(`https://api.github.com/gists/${gistId}?_=${cacheBust}`, {
     cache: 'no-store',
-    headers:{
-      'Accept':'application/vnd.github+json',
-      'Cache-Control':'no-cache, no-store, must-revalidate',
-      'Pragma':'no-cache'
-    }
+    headers:{ 'Accept':'application/vnd.github+json' }
   });
   if(!res.ok) throw new Error(`無法讀取 (${res.status})`);
   const gist = await res.json();
