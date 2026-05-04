@@ -1193,33 +1193,57 @@ async function gistApi(method, path, body){
 // 純上傳邏輯（無 UI），給 manual 和 auto 共用
 async function _doSyncToGist(pet){
   const data = getData();
-  const records = data.records[pet.id] || {};
+  // 重要：從新讀出來的 data 裡找到對應 pet，要修改的是這一份，否則 saveData 不會包含我們的修改
+  const petInData = data.pets.find(p => p.id === pet.id);
+  if(!petInData) throw new Error('找不到寵物');
+  const records = data.records[petInData.id] || {};
   if(Object.keys(records).length === 0){
     throw new Error('還沒有紀錄');
   }
   const payload = {
     version: 1,
-    pet: { name:pet.name, species:pet.species, owner:pet.owner||'', notes:pet.notes||'' },
+    pet: { name:petInData.name, species:petInData.species, owner:petInData.owner||'', notes:petInData.notes||'' },
     records: records,
     lastUpdate: new Date().toISOString()
   };
-  const fileName = `${pet.name || 'pet'}_照護紀錄.json`;
+  const fileName = `${petInData.name || 'pet'}_照護紀錄.json`;
   const content = JSON.stringify(payload, null, 2);
-  let gistId = pet.gistId;
+  let gistId = petInData.gistId;
+  let createdNew = false;
   if(!gistId){
     const result = await gistApi('POST', '/gists', {
-      description:`${pet.name} 照護紀錄（由 Wendy 維護）`,
+      description:`${petInData.name} 照護紀錄（由 Wendy 維護）`,
       public:false,
       files:{ [fileName]:{ content } }
     });
     gistId = result.id;
-    pet.gistId = gistId;
-    saveData(data);
+    petInData.gistId = gistId;
+    createdNew = true;
   } else {
-    await gistApi('PATCH', `/gists/${gistId}`, {
-      files:{ [fileName]:{ content } }
-    });
+    try{
+      await gistApi('PATCH', `/gists/${gistId}`, {
+        files:{ [fileName]:{ content } }
+      });
+    } catch(e){
+      // Gist 可能被使用者手動刪了；fallback 建新的
+      if(String(e.message).includes('404') || String(e.message).includes('Not Found')){
+        const result = await gistApi('POST', '/gists', {
+          description:`${petInData.name} 照護紀錄（由 Wendy 維護）`,
+          public:false,
+          files:{ [fileName]:{ content } }
+        });
+        gistId = result.id;
+        petInData.gistId = gistId;
+        createdNew = true;
+      } else {
+        throw e;
+      }
+    }
   }
+  // 不論 create / patch / 重建，gistId 都寫回 localStorage
+  saveData(data);
+  // 也更新 caller 傳進來的 pet 物件參考
+  pet.gistId = gistId;
   return location.origin + location.pathname + `?view=${gistId}`;
 }
 
