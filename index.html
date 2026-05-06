@@ -367,6 +367,22 @@
   }
   .tab.active { background: var(--brown); color: var(--bg); }
 
+  .search-input {
+    width: 100%;
+    padding: 10px 16px;
+    border: 1px solid var(--brown-light);
+    border-radius: 24px;
+    background: white;
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 12px;
+    font-family: inherit;
+  }
+  .search-input:focus {
+    outline: 2px solid var(--brown);
+    outline-offset: -1px;
+  }
+
   .item-list-row {
     display: flex;
     align-items: center;
@@ -592,6 +608,8 @@ const state = {
   view: 'pets',  // pets | sessions | session | settings
   petId: null,
   sessionId: null,
+  petFilter: '',  // '' | 'dog' | 'cat'
+  petQuery: '',
 };
 
 /* ============== UTIL ============== */
@@ -624,6 +642,20 @@ function getPetSessions(petId) {
   return load(KEYS.sessions, [])
     .filter(s => s.petId === petId)
     .sort((a,b) => b.date.localeCompare(a.date));
+}
+
+// 排序鍵：最近的 session 日期，沒 session 用 createdAt 當 fallback
+function getPetSortKey(pet) {
+  const sessions = getPetSessions(pet.id);
+  if (sessions.length) return sessions[0].date;
+  return pet.createdAt ? pet.createdAt.slice(0, 10) : '';
+}
+function petMatchesQuery(pet, q) {
+  if (!q) return true;
+  const lc = q.toLowerCase();
+  return (pet.name||'').toLowerCase().includes(lc)
+      || (pet.breed||'').toLowerCase().includes(lc)
+      || (pet.ownerName||'').toLowerCase().includes(lc);
 }
 
 function showNotice(msg, type = 'ok') {
@@ -683,13 +715,14 @@ document.getElementById('settingsBtn').onclick = () => {
 /* ============== VIEW: PETS ============== */
 function renderPets() {
   const main = document.getElementById('main');
-  const pets = load(KEYS.pets, []);
+  const allPets = load(KEYS.pets, []);
   const hero = `
     <div class="brand-hero">
       <img src="logo.png" alt="Wendy 溫蒂．貓與狗訓練日常"
            onerror="this.style.display='none'">
     </div>`;
-  if (pets.length === 0) {
+
+  if (allPets.length === 0) {
     main.innerHTML = hero + `
       <div class="empty">
         <h3>還沒有寵物資料</h3>
@@ -697,25 +730,87 @@ function renderPets() {
       </div>
       <button class="fab" id="fab">＋</button>
     `;
+    document.getElementById('fab').onclick = () => openPetForm();
+    return;
+  }
+
+  // 計算各物種數量
+  const dogCount = allPets.filter(p => p.species === 'dog').length;
+  const catCount = allPets.filter(p => p.species === 'cat').length;
+  const showSearch = allPets.length > 5;
+
+  // Tabs
+  const tabs = `
+    <div class="tabs">
+      <button class="tab ${state.petFilter===''?'active':''}" data-pet-filter="">全部 (${allPets.length})</button>
+      <button class="tab ${state.petFilter==='dog'?'active':''}" data-pet-filter="dog">🐶 狗 (${dogCount})</button>
+      <button class="tab ${state.petFilter==='cat'?'active':''}" data-pet-filter="cat">🐱 貓 (${catCount})</button>
+    </div>`;
+
+  // Search
+  const search = showSearch ? `
+    <input type="text" class="search-input" id="petSearch"
+           placeholder="🔍 搜尋名字、品種或飼主"
+           value="${escapeAttr(state.petQuery)}">` : '';
+
+  // Filter + sort
+  let pets = allPets.slice();
+  if (state.petFilter) pets = pets.filter(p => p.species === state.petFilter);
+  if (state.petQuery.trim()) pets = pets.filter(p => petMatchesQuery(p, state.petQuery.trim()));
+  pets.sort((a, b) => getPetSortKey(b).localeCompare(getPetSortKey(a)));
+
+  let listHtml;
+  if (pets.length === 0) {
+    listHtml = `
+      <div class="empty">
+        <h3>沒有符合條件的寵物</h3>
+        <p>試試其他關鍵字或切換物種</p>
+      </div>`;
   } else {
-    const cards = pets.map(p => {
-      const count = getPetSessions(p.id).length;
+    listHtml = pets.map(p => {
+      const sessions = getPetSessions(p.id);
+      const count = sessions.length;
+      const recentLabel = sessions.length
+        ? `最近：${fmtDate(sessions[0].date)}`
+        : '尚未上課';
       return `
         <div class="card" data-id="${p.id}">
           <div class="card-row">
             <div>
               <div class="card-title">${speciesEmoji(p.species)} ${escapeHtml(p.name)}</div>
               <div class="card-meta">${escapeHtml(petTagline(p))} · 飼主：${escapeHtml(p.ownerName || '—')}</div>
+              <div class="card-meta" style="margin-top:4px; font-size:12px">${recentLabel}</div>
             </div>
             <span class="badge">${count} 堂</span>
           </div>
         </div>`;
     }).join('');
-    main.innerHTML = hero + cards + `<button class="fab" id="fab">＋</button>`;
-    main.querySelectorAll('.card').forEach(el => {
-      el.onclick = () => go('sessions', { petId: el.dataset.id });
-    });
   }
+
+  main.innerHTML = hero + tabs + search + listHtml + `<button class="fab" id="fab">＋</button>`;
+
+  // Tab handler
+  main.querySelectorAll('[data-pet-filter]').forEach(t => {
+    t.onclick = () => { state.petFilter = t.dataset.petFilter; renderPets(); };
+  });
+  // Search handler
+  const sInput = document.getElementById('petSearch');
+  if (sInput) {
+    sInput.oninput = () => {
+      state.petQuery = sInput.value;
+      renderPets();
+      // 重新 render 後 input 會被取代，把 focus 放回去
+      const newInput = document.getElementById('petSearch');
+      if (newInput) {
+        newInput.focus();
+        newInput.setSelectionRange(newInput.value.length, newInput.value.length);
+      }
+    };
+  }
+  // Card click
+  main.querySelectorAll('.card[data-id]').forEach(el => {
+    el.onclick = () => go('sessions', { petId: el.dataset.id });
+  });
   document.getElementById('fab').onclick = () => openPetForm();
 }
 
