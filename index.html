@@ -335,6 +335,15 @@
     font-size: 13px;
     margin-bottom: 12px;
   }
+  .autosave-banner {
+    background: #d4e7d3;
+    color: #3d6b3f;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 14px;
+    border-left: 3px solid #6b9e6e;
+  }
   .notice.ok { background: #d4e7d3; color: #3d6b3f; }
   .notice.err { background: #f5d4c2; color: #8a3920; }
 
@@ -1007,6 +1016,9 @@ function renderSession() {
   }).join('');
 
   main.innerHTML = `
+    <div class="autosave-banner">
+      💾 評分、方法勾選、備註都是<b>自動儲存</b>。儲存按鈕只是快速確認。
+    </div>
     <div class="card" style="cursor:default">
       <div class="card-row">
         <div>
@@ -1376,6 +1388,9 @@ function renderSettings() {
   const catItems = load(KEYS.itemsCat, []);
 
   main.innerHTML = `
+    <div class="autosave-banner">
+      💾 訓練項目區會<b>自動儲存</b>（離開欄位即存）。GitHub 設定要按下方「儲存設定」鈕。
+    </div>
     <h3 style="color:var(--brown-dark); margin: 4px 0 10px; font-size:15px">GitHub 同步</h3>
     <div class="card" style="cursor:default">
       <div class="field">
