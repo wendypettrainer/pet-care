@@ -175,6 +175,30 @@
   textarea { resize: vertical; min-height: 80px; }
   .field { margin-bottom: 14px; }
   .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .radio-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .radio-opt {
+    flex: 1;
+    min-width: 80px;
+    padding: 10px 12px;
+    background: white;
+    border: 1px solid var(--brown-light);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--text);
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .radio-opt input[type=radio] { accent-color: var(--brown); }
+  .radio-opt:has(input:checked) {
+    background: var(--bg-soft);
+    border-color: var(--brown);
+    color: var(--brown-dark);
+    font-weight: 500;
+  }
 
   /* Modal */
   .overlay {
@@ -214,6 +238,12 @@
     cursor: pointer;
   }
   .item-name { flex: 1; font-weight: 500; }
+  .steps-badge {
+    display: inline-block;
+    font-size: 11px;
+    margin-left: 4px;
+    opacity: 0.7;
+  }
   .check {
     width: 22px; height: 22px;
     border: 2px solid var(--brown-light);
@@ -248,6 +278,54 @@
   .rating-btn.active.good { background: var(--good); color: white; border-color: var(--good); }
   .rating-btn.active.ok { background: var(--ok); color: white; border-color: var(--ok); }
   .rating-btn.active.work { background: var(--work); color: white; border-color: var(--work); }
+
+  .pet-note-input {
+    margin-top: 8px;
+    margin-left: 32px;
+    width: calc(100% - 32px);
+    padding: 6px 10px;
+    border: 1px dashed var(--brown-light);
+    border-radius: 6px;
+    background: white;
+    font-family: inherit;
+    font-size: 13px;
+    color: var(--text);
+    min-height: 32px;
+    resize: vertical;
+  }
+  .pet-note-input:focus {
+    outline: 1px solid var(--brown);
+    border-style: solid;
+  }
+
+  .methods-section {
+    margin-top: 8px;
+    margin-left: 32px;
+    padding: 8px 10px;
+    background: white;
+    border-radius: 6px;
+    border: 1px solid var(--brown-light);
+  }
+  .methods-label {
+    font-size: 11px;
+    color: var(--brown);
+    font-weight: 600;
+    margin-bottom: 6px;
+    letter-spacing: 0.5px;
+  }
+  .method-check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 4px;
+    cursor: pointer;
+    font-size: 14px;
+  }
+  .method-check input[type=checkbox] {
+    accent-color: var(--brown);
+    width: 18px; height: 18px;
+    cursor: pointer;
+  }
 
   .notice {
     background: var(--brown-light);
@@ -296,6 +374,71 @@
     padding: 4px;
   }
   .item-list-row input:focus { outline: 1px solid var(--brown); border-radius: 4px; }
+  .item-edit-block {
+    background: var(--bg-soft);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin-bottom: 8px;
+  }
+  .item-edit-top {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .item-edit-top input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid var(--brown-light);
+    border-radius: 6px;
+    background: white;
+    font-size: 14px;
+  }
+  .item-edit-block textarea {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--brown-light);
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+    color: var(--text-soft);
+    background: white;
+    min-height: 50px;
+    resize: vertical;
+  }
+  .methods-wrap {
+    margin-top: 8px;
+    margin-left: 12px;
+    border-left: 2px solid var(--brown-light);
+    padding-left: 12px;
+  }
+  .method-block {
+    background: white;
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 6px;
+    border: 1px solid var(--brown-light);
+  }
+  .method-top {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-bottom: 6px;
+  }
+  .method-top input {
+    flex: 1;
+    padding: 5px 8px;
+    border: 1px solid var(--brown-light);
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .method-block textarea {
+    min-height: 40px;
+    font-size: 12px;
+  }
+  .add-method {
+    margin-top: 4px;
+  }
   .small-btn {
     background: transparent;
     border: 1px solid var(--brown-light);
@@ -366,7 +509,7 @@ const DEFAULT_DOG_ITEMS = [
   '放下 Drop it', '不要 Leave it', '握手 / 擊掌',
   '社會化：人', '社會化：狗', '社會化：環境聲音',
   '接受梳毛 / 剪指甲', '不撲人', '進出門禮儀',
-];
+].map(name => ({ name, methods: [] }));
 
 const DEFAULT_CAT_ITEMS = [
   '響片連結', '目標棒觸碰', '進外出籠（Crate）',
@@ -375,7 +518,33 @@ const DEFAULT_CAT_ITEMS = [
   '坐下', '轉圈', '不上餐桌', '不咬手 / 不抓人',
   '接受陌生人靠近', '健康檢查姿勢（觸碰耳/嘴/腹）',
   '環境減敏：聲音', '環境減敏：陌生環境',
-];
+].map(name => ({ name, methods: [] }));
+
+// 把任何舊版資料自動升級成 v3：{ name, methods: [{name, steps}] }
+function ensureItemShape(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(it => {
+    if (typeof it === 'string') {
+      // v1
+      return { name: it, methods: [] };
+    }
+    if (Array.isArray(it.methods)) {
+      // v3 already
+      return {
+        name: it.name || '',
+        methods: it.methods.map(m => ({
+          name: (m && m.name) || '',
+          steps: (m && m.steps) || '',
+        })),
+      };
+    }
+    // v2: had {name, steps}
+    if (it.steps && it.steps.trim()) {
+      return { name: it.name || '', methods: [{ name: '基本方法', steps: it.steps }] };
+    }
+    return { name: it.name || '', methods: [] };
+  });
+}
 
 function load(key, fallback) {
   try {
@@ -392,7 +561,7 @@ function uid() {
 
 function initStorage() {
   if (!localStorage.getItem(KEYS.version)) {
-    save(KEYS.version, 1);
+    save(KEYS.version, 2);
   }
   if (!localStorage.getItem(KEYS.pets)) save(KEYS.pets, []);
   if (!localStorage.getItem(KEYS.sessions)) save(KEYS.sessions, []);
@@ -403,6 +572,10 @@ function initStorage() {
     githubUser: 'wendypettrainer',
     githubRepo: 'pet-care',
   });
+  // Migration: 任何舊格式（string[] / {name,steps}）→ v3 {name, methods[]}
+  save(KEYS.itemsCat, ensureItemShape(load(KEYS.itemsCat, [])));
+  save(KEYS.itemsDog, ensureItemShape(load(KEYS.itemsDog, [])));
+  save(KEYS.version, 3);
 }
 
 const state = {
@@ -423,6 +596,17 @@ function todayStr() {
 }
 function speciesLabel(s) { return s === 'cat' ? '貓' : '狗'; }
 function speciesEmoji(s) { return s === 'cat' ? '🐱' : '🐶'; }
+function genderLabel(g) { return g === 'male' ? '♂' : g === 'female' ? '♀' : ''; }
+function neuteredLabel(n) { return n === 'yes' ? '已絕育' : n === 'no' ? '未絕育' : ''; }
+function petTagline(p) {
+  // 一行短描述：品種 · ♂ · 已絕育 · 4 個月齡
+  return [
+    p.breed || speciesLabel(p.species),
+    genderLabel(p.gender),
+    neuteredLabel(p.neutered),
+    p.birth,
+  ].filter(Boolean).join(' · ');
+}
 
 function getPet(id) { return load(KEYS.pets, []).find(p => p.id === id); }
 function getSession(id) { return load(KEYS.sessions, []).find(s => s.id === id); }
@@ -509,7 +693,7 @@ function renderPets() {
           <div class="card-row">
             <div>
               <div class="card-title">${speciesEmoji(p.species)} ${escapeHtml(p.name)}</div>
-              <div class="card-meta">${escapeHtml(p.breed || speciesLabel(p.species))} · 飼主：${escapeHtml(p.ownerName || '—')}</div>
+              <div class="card-meta">${escapeHtml(petTagline(p))} · 飼主：${escapeHtml(p.ownerName || '—')}</div>
             </div>
             <span class="badge">${count} 堂</span>
           </div>
@@ -527,6 +711,7 @@ function openPetForm(pet = null) {
   const isEdit = !!pet;
   const data = pet || {
     id: '', species: 'dog', name: '', breed: '', birth: '',
+    gender: '', neutered: '',
     ownerName: '', ownerContact: '', notes: '',
   };
   const html = `
@@ -551,8 +736,26 @@ function openPetForm(pet = null) {
       </div>
       <div class="row2">
         <div class="field">
-          <label>出生年月</label>
-          <input id="f_birth" type="text" value="${escapeAttr(data.birth)}" placeholder="2023-05">
+          <label>性別</label>
+          <select id="f_gender">
+            <option value="" ${!data.gender?'selected':''}>未填</option>
+            <option value="male" ${data.gender==='male'?'selected':''}>♂ 公</option>
+            <option value="female" ${data.gender==='female'?'selected':''}>♀ 母</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>絕育</label>
+          <select id="f_neutered">
+            <option value="" ${!data.neutered?'selected':''}>未填</option>
+            <option value="yes" ${data.neutered==='yes'?'selected':''}>是</option>
+            <option value="no" ${data.neutered==='no'?'selected':''}>否</option>
+          </select>
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>出生年月 / 月齡</label>
+          <input id="f_birth" type="text" value="${escapeAttr(data.birth)}" placeholder="2023-05 或 4 個月齡">
         </div>
         <div class="field">
           <label>飼主姓名</label>
@@ -585,6 +788,8 @@ function openPetForm(pet = null) {
       name,
       breed: overlay.querySelector('#f_breed').value.trim(),
       birth: overlay.querySelector('#f_birth').value.trim(),
+      gender: overlay.querySelector('#f_gender').value,
+      neutered: overlay.querySelector('#f_neutered').value,
       ownerName: overlay.querySelector('#f_owner').value.trim(),
       ownerContact: overlay.querySelector('#f_contact').value.trim(),
       notes: overlay.querySelector('#f_notes').value.trim(),
@@ -621,8 +826,7 @@ function renderSessions() {
   const meta = `
     <div class="card" style="cursor:default; background:transparent; box-shadow:none; padding:8px 4px">
       <div class="card-meta">
-        ${escapeHtml(pet.breed || speciesLabel(pet.species))} ·
-        ${pet.birth ? '生日 ' + pet.birth + ' · ' : ''}
+        ${escapeHtml(petTagline(pet))} ·
         飼主 ${escapeHtml(pet.ownerName || '—')}
         ${pet.ownerContact ? ' · ' + escapeHtml(pet.ownerContact) : ''}
       </div>
@@ -669,6 +873,11 @@ function openSessionForm(session = null) {
     id: '', petId: state.petId, date: todayStr(),
     location: '', duration: 60,
   };
+  // 把舊的 freeform location 對應到 radio：教室/家中 直接命中，其他都歸到「其他」+文字
+  const presetLocs = ['教室', '家中'];
+  const isPreset = presetLocs.includes(data.location);
+  const initType = !data.location ? '' : (isPreset ? data.location : 'other');
+  const initOther = isPreset ? '' : (data.location || '');
   const html = `
     <div class="modal">
       <h2>${isEdit ? '編輯課程' : '新增課程'}</h2>
@@ -684,7 +893,13 @@ function openSessionForm(session = null) {
       </div>
       <div class="field">
         <label>地點</label>
-        <input id="f_location" type="text" value="${escapeAttr(data.location||'')}" placeholder="例：客戶家 / 公園">
+        <div class="radio-group">
+          <label class="radio-opt"><input type="radio" name="locType" value="教室" ${initType==='教室'?'checked':''}> 教室</label>
+          <label class="radio-opt"><input type="radio" name="locType" value="家中" ${initType==='家中'?'checked':''}> 家中</label>
+          <label class="radio-opt"><input type="radio" name="locType" value="other" ${initType==='other'?'checked':''}> 其他</label>
+        </div>
+        <input id="f_locOther" type="text" value="${escapeAttr(initOther)}" placeholder="請輸入地點"
+               style="margin-top:8px; display:${initType==='other'?'block':'none'};">
       </div>
       <div class="modal-actions">
         ${isEdit ? '<button class="btn danger" id="m_del">刪除</button>' : ''}
@@ -695,15 +910,27 @@ function openSessionForm(session = null) {
   `;
   const overlay = openModal(html);
   overlay.querySelector('#m_cancel').onclick = () => overlay.remove();
+  // Toggle 其他 文字輸入
+  overlay.querySelectorAll('input[name="locType"]').forEach(r => {
+    r.onchange = () => {
+      const ot = overlay.querySelector('#f_locOther');
+      ot.style.display = (r.value === 'other' && r.checked) ? 'block' : 'none';
+      if (r.value === 'other' && r.checked) ot.focus();
+    };
+  });
   overlay.querySelector('#m_save').onclick = () => {
     const date = overlay.querySelector('#f_date').value;
     if (!date) { showNotice('請選日期', 'err'); return; }
+    const locTypeEl = overlay.querySelector('input[name="locType"]:checked');
+    const locType = locTypeEl ? locTypeEl.value : '';
+    const locOther = overlay.querySelector('#f_locOther').value.trim();
+    const finalLoc = locType === 'other' ? locOther : (locType || '');
     const updated = {
       id: data.id || uid(),
       petId: data.petId,
       date,
       duration: parseInt(overlay.querySelector('#f_duration').value) || 0,
-      location: overlay.querySelector('#f_location').value.trim(),
+      location: finalLoc,
       records: data.records || [],
       homework: data.homework || '',
       notes: data.notes || '',
@@ -739,24 +966,43 @@ function renderSession() {
   if (!sess) { go('sessions', { petId: state.petId }); return; }
   const pet = getPet(sess.petId);
   if (!pet) { go('pets'); return; }
-  const items = pet.species === 'cat' ? load(KEYS.itemsCat, []) : load(KEYS.itemsDog, []);
+  const items = ensureItemShape(pet.species === 'cat' ? load(KEYS.itemsCat, []) : load(KEYS.itemsDog, []));
   const recordsByName = {};
   (sess.records || []).forEach(r => recordsByName[r.name] = r);
 
-  const itemsHtml = items.map(name => {
-    const r = recordsByName[name] || { name, selected: false, rating: '' };
+  const itemsHtml = items.map(it => {
+    const name = it.name;
+    const r = recordsByName[name] || { name, selected: false, rating: '', methods: [], petNote: '' };
+    const itMethods = it.methods || [];
+    const hasMethods = itMethods.length > 0;
+    const checkedSet = new Set(r.methods || []);
+    const methodsBlock = hasMethods ? `
+      <div class="methods-section">
+        <div class="methods-label">🎯 今天用的方法（可複選）</div>
+        ${itMethods.map(m => `
+          <label class="method-check">
+            <input type="checkbox" data-method="${escapeAttr(m.name)}" ${checkedSet.has(m.name)?'checked':''}>
+            <span>${escapeHtml(m.name || '（未命名方法）')}</span>
+          </label>
+        `).join('')}
+      </div>` : '';
     return `
       <div class="item ${r.selected ? 'selected' : ''}" data-name="${escapeAttr(name)}">
         <div class="item-head">
           <div class="check">${r.selected ? '✓' : ''}</div>
-          <div class="item-name">${escapeHtml(name)}</div>
+          <div class="item-name">${escapeHtml(name)}${hasMethods ? ' <span class="steps-badge" title="此項目有 '+itMethods.length+' 種訓練方法">📋</span>' : ''}</div>
         </div>
         ${r.selected ? `
           <div class="ratings">
             <button class="rating-btn good ${r.rating==='good'?'active':''}" data-rating="good">😊 好</button>
             <button class="rating-btn ok ${r.rating==='ok'?'active':''}" data-rating="ok">😐 普通</button>
             <button class="rating-btn work ${r.rating==='work'?'active':''}" data-rating="work">💪 需加強</button>
-          </div>` : ''}
+          </div>
+          ${methodsBlock}
+          <textarea class="pet-note-input" data-pet-note="${escapeAttr(name)}"
+            placeholder="💭 針對這隻寵物的調整備註（可選，會給飼主）"
+            rows="1">${escapeHtml(r.petNote || '')}</textarea>
+        ` : ''}
       </div>`;
   }).join('');
 
@@ -764,7 +1010,7 @@ function renderSession() {
     <div class="card" style="cursor:default">
       <div class="card-row">
         <div>
-          <div class="card-title">${speciesEmoji(pet.species)} ${escapeHtml(pet.name)}</div>
+          <div class="card-title">${speciesEmoji(pet.species)} ${escapeHtml(pet.name)} ${genderLabel(pet.gender)}</div>
           <div class="card-meta">
             ${fmtDate(sess.date)}
             ${sess.location ? ' · 📍 ' + escapeHtml(sess.location) : ''}
@@ -800,9 +1046,9 @@ function renderSession() {
   main.querySelectorAll('.item').forEach(el => {
     const name = el.dataset.name;
     el.querySelector('.item-head').onclick = () => {
-      const cur = recordsByName[name] || { name, selected: false, rating: '' };
+      const cur = recordsByName[name] || { name, selected: false, rating: '', petNote: '' };
       cur.selected = !cur.selected;
-      if (!cur.selected) cur.rating = '';
+      if (!cur.selected) { cur.rating = ''; cur.petNote = ''; }
       recordsByName[name] = cur;
       saveRecords();
       renderSession();
@@ -814,6 +1060,30 @@ function renderSession() {
         cur.rating = cur.rating === rb.dataset.rating ? '' : rb.dataset.rating;
         saveRecords();
         renderSession();
+      };
+    });
+    const noteInput = el.querySelector('.pet-note-input');
+    if (noteInput) {
+      noteInput.onblur = () => {
+        const cur = recordsByName[name];
+        if (cur) cur.petNote = noteInput.value;
+        saveRecords();
+      };
+      noteInput.onclick = (e) => e.stopPropagation();
+    }
+    el.querySelectorAll('.method-check input[type=checkbox]').forEach(cb => {
+      cb.onclick = (e) => {
+        e.stopPropagation();
+        const cur = recordsByName[name];
+        if (!cur) return;
+        cur.methods = cur.methods || [];
+        const mname = cb.dataset.method;
+        if (cb.checked) {
+          if (!cur.methods.includes(mname)) cur.methods.push(mname);
+        } else {
+          cur.methods = cur.methods.filter(m => m !== mname);
+        }
+        saveRecords();
       };
     });
   });
@@ -883,12 +1153,15 @@ function exportPdf(sess, pet) {
   // Pet info
   doc.setTextColor(61, 47, 31);
   doc.setFontSize(13);
-  doc.text(`${pet.species==='cat'?'[Cat]':'[Dog]'} ${pet.name}`, M, y);
+  const genderTxt = pet.gender === 'male' ? ' (M)' : pet.gender === 'female' ? ' (F)' : '';
+  doc.text(`${pet.species==='cat'?'[Cat]':'[Dog]'} ${pet.name}${genderTxt}`, M, y);
   y += 6;
   doc.setFontSize(10);
   doc.setTextColor(107, 84, 53);
   const meta = [
     pet.breed,
+    pet.birth,
+    pet.neutered === 'yes' ? 'Neutered' : pet.neutered === 'no' ? 'Intact' : '',
     pet.ownerName ? `Owner: ${pet.ownerName}` : '',
     sess.location ? `Loc: ${sess.location}` : '',
     sess.duration ? `${sess.duration} min` : '',
@@ -905,6 +1178,11 @@ function exportPdf(sess, pet) {
   doc.line(M, y, W - M, y);
   y += 4;
 
+  // 把方法 / steps 注入 records 給 PDF 用
+  const items = ensureItemShape(pet.species === 'cat' ? load(KEYS.itemsCat, []) : load(KEYS.itemsDog, []));
+  const itemMap = {};
+  items.forEach(it => { itemMap[it.name] = it.methods || []; });
+
   const records = (sess.records || []).filter(r => r.selected);
   if (records.length === 0) {
     doc.setFontSize(10);
@@ -912,8 +1190,8 @@ function exportPdf(sess, pet) {
     doc.text('（這堂課還沒有勾選項目）', M, y + 4);
     y += 10;
   } else {
-    doc.setFontSize(10);
     records.forEach(r => {
+      doc.setFontSize(10);
       const ratingTxt = r.rating === 'good' ? '[Good]' : r.rating === 'ok' ? '[OK]' : r.rating === 'work' ? '[Need work]' : '';
       doc.setTextColor(61, 47, 31);
       doc.text('• ' + r.name, M + 2, y + 4);
@@ -922,6 +1200,32 @@ function exportPdf(sess, pet) {
       else if (r.rating === 'work') doc.setTextColor(201, 122, 79);
       doc.text(ratingTxt, W - M, y + 4, { align: 'right' });
       y += 6;
+      // 對被勾選的每個方法：印「方法名稱」+ 該方法的 steps
+      const itMethods = itemMap[r.name] || [];
+      const checkedNames = r.methods || [];
+      checkedNames.forEach(mn => {
+        const m = itMethods.find(im => im.name === mn);
+        doc.setFontSize(9);
+        doc.setTextColor(139, 111, 71);
+        doc.text(`> Method: ${mn}`, M + 6, y + 3);
+        y += 5;
+        if (m && m.steps && m.steps.trim()) {
+          doc.setTextColor(107, 84, 53);
+          const stepLines = doc.splitTextToSize(m.steps.trim(), W - M*2 - 12);
+          doc.text(stepLines, M + 12, y + 1);
+          y += stepLines.length * 4 + 2;
+        }
+        if (y > 270) { doc.addPage(); y = M; }
+      });
+      // Pet note
+      if (r.petNote && r.petNote.trim()) {
+        doc.setFontSize(9);
+        doc.setTextColor(139, 111, 71);
+        doc.text(`[For ${pet.name}]`, M + 6, y + 3);
+        const noteLines = doc.splitTextToSize(r.petNote.trim(), W - M*2 - 30);
+        doc.text(noteLines, M + 30, y + 3);
+        y += 3 + noteLines.length * 4 + 2;
+      }
       if (y > 270) { doc.addPage(); y = M; }
     });
   }
@@ -958,14 +1262,28 @@ async function shareToGist(sess, pet) {
     showNotice('請先到設定填入 GitHub PAT', 'err');
     return;
   }
+  // 把該項目「被勾選的方法」連同 steps 一起嵌入 record，飼主端看得到
+  const items = ensureItemShape(pet.species === 'cat' ? load(KEYS.itemsCat, []) : load(KEYS.itemsDog, []));
+  const itemMap = {};
+  items.forEach(it => { itemMap[it.name] = it.methods || []; });
+  const enrichedRecords = (sess.records || []).map(r => {
+    const itMethods = itemMap[r.name] || [];
+    const checkedNames = r.methods || [];
+    const methodDetails = checkedNames.map(mn => {
+      const m = itMethods.find(im => im.name === mn);
+      return { name: mn, steps: (m && m.steps) || '' };
+    });
+    return { ...r, methodDetails };
+  });
   const payload = {
     pet: {
       name: pet.name, species: pet.species, breed: pet.breed,
+      gender: pet.gender, neutered: pet.neutered, birth: pet.birth,
       ownerName: pet.ownerName,
     },
     session: {
       date: sess.date, location: sess.location, duration: sess.duration,
-      records: sess.records, homework: sess.homework,
+      records: enrichedRecords, homework: sess.homework,
     },
     brand: 'Wendy 溫蒂．貓與狗訓練日常',
     generated: new Date().toISOString(),
@@ -1114,32 +1432,88 @@ function renderSettings() {
   let currentTab = 'dog';
   function renderItemEditor() {
     const key = currentTab === 'dog' ? KEYS.itemsDog : KEYS.itemsCat;
-    const list = load(key, []);
+    const list = ensureItemShape(load(key, []));
+
+    function methodHtml(m, i, j) {
+      return `
+        <div class="method-block">
+          <div class="method-top">
+            <input data-i="${i}" data-j="${j}" data-mfield="name" value="${escapeAttr(m.name)}" placeholder="方法名稱（例：手勢引導 / 響片）">
+            <button class="small-btn danger" data-mdel="${i}_${j}">刪</button>
+          </div>
+          <textarea data-i="${i}" data-j="${j}" data-mfield="steps"
+            placeholder="（可選）這個方法的步驟，例：1. 食物在鼻子前  2. 慢慢往頭頂移..."
+            rows="2">${escapeHtml(m.steps)}</textarea>
+        </div>`;
+    }
+
     document.getElementById('itemEditor').innerHTML = `
       <div class="card" style="cursor:default">
+        <p class="card-meta" style="margin-bottom:10px">
+          💡 每個訓練項目下可加多個「訓練方法」，每個方法有自己的步驟。
+          上課時可勾選今天用了哪些方法，飼主端會看到對應步驟當回家功課指引。
+        </p>
         ${list.map((it, i) => `
-          <div class="item-list-row">
-            <input data-i="${i}" value="${escapeAttr(it)}">
-            <button class="small-btn" data-up="${i}" ${i===0?'disabled':''}>↑</button>
-            <button class="small-btn danger" data-del="${i}">刪</button>
+          <div class="item-edit-block">
+            <div class="item-edit-top">
+              <input data-i="${i}" data-field="name" value="${escapeAttr(it.name)}" placeholder="訓練項目名稱">
+              <button class="small-btn" data-up="${i}" ${i===0?'disabled':''}>↑</button>
+              <button class="small-btn danger" data-del="${i}">刪</button>
+            </div>
+            <div class="methods-wrap">
+              ${(it.methods || []).map((m, j) => methodHtml(m, i, j)).join('')}
+              <button class="small-btn add-method" data-addmethod="${i}">＋ 新增方法</button>
+            </div>
           </div>
         `).join('')}
-        <button class="btn ghost" id="addItem" style="margin-top:8px">＋ 新增項目</button>
+        <button class="btn ghost" id="addItem" style="margin-top:8px">＋ 新增訓練項目</button>
       </div>
     `;
-    document.querySelectorAll('#itemEditor input').forEach(inp => {
-      inp.onchange = () => {
-        const i = parseInt(inp.dataset.i);
-        const cur = load(key, []);
-        cur[i] = inp.value.trim();
-        save(key, cur);
-      };
+
+    function updateItemField(i, field, value) {
+      const cur = ensureItemShape(load(key, []));
+      cur[i][field] = (field === 'name') ? value.trim() : value;
+      save(key, cur);
+    }
+    function updateMethodField(i, j, field, value) {
+      const cur = ensureItemShape(load(key, []));
+      cur[i].methods[j][field] = (field === 'name') ? value.trim() : value;
+      save(key, cur);
+    }
+
+    document.querySelectorAll('#itemEditor input[data-field]').forEach(inp => {
+      inp.onchange = () => updateItemField(parseInt(inp.dataset.i), inp.dataset.field, inp.value);
+    });
+    document.querySelectorAll('#itemEditor input[data-mfield]').forEach(inp => {
+      inp.onchange = () => updateMethodField(parseInt(inp.dataset.i), parseInt(inp.dataset.j), inp.dataset.mfield, inp.value);
+    });
+    document.querySelectorAll('#itemEditor textarea[data-mfield]').forEach(ta => {
+      ta.onchange = () => updateMethodField(parseInt(ta.dataset.i), parseInt(ta.dataset.j), ta.dataset.mfield, ta.value);
     });
     document.querySelectorAll('[data-del]').forEach(btn => {
       btn.onclick = () => {
         const i = parseInt(btn.dataset.del);
-        const cur = load(key, []);
+        const cur = ensureItemShape(load(key, []));
+        if (!confirm(`刪除「${cur[i].name}」整個項目？`)) return;
         cur.splice(i, 1);
+        save(key, cur);
+        renderItemEditor();
+      };
+    });
+    document.querySelectorAll('[data-mdel]').forEach(btn => {
+      btn.onclick = () => {
+        const [i, j] = btn.dataset.mdel.split('_').map(Number);
+        const cur = ensureItemShape(load(key, []));
+        cur[i].methods.splice(j, 1);
+        save(key, cur);
+        renderItemEditor();
+      };
+    });
+    document.querySelectorAll('[data-addmethod]').forEach(btn => {
+      btn.onclick = () => {
+        const i = parseInt(btn.dataset.addmethod);
+        const cur = ensureItemShape(load(key, []));
+        cur[i].methods.push({ name: '', steps: '' });
         save(key, cur);
         renderItemEditor();
       };
@@ -1148,15 +1522,15 @@ function renderSettings() {
       btn.onclick = () => {
         const i = parseInt(btn.dataset.up);
         if (i === 0) return;
-        const cur = load(key, []);
+        const cur = ensureItemShape(load(key, []));
         [cur[i-1], cur[i]] = [cur[i], cur[i-1]];
         save(key, cur);
         renderItemEditor();
       };
     });
     document.getElementById('addItem').onclick = () => {
-      const cur = load(key, []);
-      cur.push('新項目');
+      const cur = ensureItemShape(load(key, []));
+      cur.push({ name: '新項目', methods: [] });
       save(key, cur);
       renderItemEditor();
     };
