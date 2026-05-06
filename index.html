@@ -476,8 +476,9 @@
 <body>
 <div class="app">
   <header class="top">
-    <button class="icon-btn" id="backBtn" title="返回">‹</button>
+    <button class="icon-btn" id="backBtn" title="返回上一層">‹</button>
     <h1 id="appTitle">Wendy 溫蒂．貓與狗訓練日常</h1>
+    <button class="icon-btn" id="homeBtn" title="回首頁">🏠</button>
     <button class="icon-btn" id="settingsBtn" title="設定">⚙</button>
   </header>
   <main id="main"></main>
@@ -649,20 +650,21 @@ function go(view, params = {}) {
 
 function updateHeader() {
   const back = document.getElementById('backBtn');
+  const home = document.getElementById('homeBtn');
   const title = document.getElementById('appTitle');
+  // 在首頁時：隱藏返回 + 隱藏首頁按鈕（已在首頁）
+  const isHome = state.view === 'pets';
+  back.style.visibility = isHome ? 'hidden' : 'visible';
+  home.style.visibility = isHome ? 'hidden' : 'visible';
   if (state.view === 'pets') {
-    back.disabled = true;
     title.textContent = 'Wendy 溫蒂．貓與狗訓練日常';
   } else if (state.view === 'sessions') {
-    back.disabled = false;
     const p = getPet(state.petId);
     title.textContent = p ? `${speciesEmoji(p.species)} ${p.name}` : '';
   } else if (state.view === 'session') {
-    back.disabled = false;
     const s = getSession(state.sessionId);
     title.textContent = s ? `📒 ${fmtDate(s.date)}` : '';
   } else if (state.view === 'settings') {
-    back.disabled = false;
     title.textContent = '⚙ 設定';
   }
 }
@@ -672,6 +674,7 @@ document.getElementById('backBtn').onclick = () => {
   else if (state.view === 'session') go('sessions', { petId: state.petId });
   else if (state.view === 'settings') go(state._returnView || 'pets');
 };
+document.getElementById('homeBtn').onclick = () => go('pets');
 document.getElementById('settingsBtn').onclick = () => {
   state._returnView = state.view;
   go('settings');
