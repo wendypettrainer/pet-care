@@ -88,12 +88,52 @@
     border-radius: 10px;
     padding: 12px 14px;
     margin-bottom: 8px;
+  }
+  .item-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
   }
   .item-name { font-weight: 500; flex: 1; }
+  .item-steps, .item-petnote, .item-method {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .item-steps {
+    padding-top: 8px;
+    border-top: 1px dashed var(--brown-light);
+    color: var(--text-soft);
+    white-space: pre-wrap;
+  }
+  .item-method {
+    padding: 8px 10px;
+    background: white;
+    border-radius: 6px;
+    border-left: 3px solid var(--brown);
+    margin-top: 6px;
+  }
+  .item-method-steps {
+    margin-top: 4px;
+    color: var(--text-soft);
+    white-space: pre-wrap;
+  }
+  .item-petnote {
+    color: var(--brown-dark);
+    background: rgba(201, 182, 147, 0.25);
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-top: 6px;
+    white-space: pre-wrap;
+  }
+  .item-label {
+    font-size: 11px;
+    color: var(--brown);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
   .rating {
     font-size: 12px;
     padding: 4px 10px;
@@ -127,18 +167,6 @@
     color: var(--text-soft);
   }
   .err { color: var(--work); }
-  .legend {
-    display: flex;
-    gap: 8px;
-    flex-wrap: wrap;
-    font-size: 12px;
-    margin-top: 8px;
-  }
-  .legend span {
-    padding: 3px 9px;
-    border-radius: 10px;
-    color: white;
-  }
 </style>
 </head>
 <body>
@@ -209,10 +237,40 @@ function renderReport(data) {
     ? `<p style="color:var(--text-soft); text-align:center; padding: 16px">本堂課暫無項目記錄</p>`
     : records.map(r => {
         const lab = ratingLabel(r.rating);
+        const petNote = (r.petNote || '').trim();
+        // 新版：r.methodDetails = [{name, steps}]
+        const methodDetails = Array.isArray(r.methodDetails) ? r.methodDetails : [];
+        const methodsHtml = methodDetails.map(md => {
+          const stepsTxt = (md.steps || '').trim();
+          return `
+            <div class="item-method">
+              <div class="item-label">🎯 方法：${escapeHtml(md.name || '（未命名方法）')}</div>
+              ${stepsTxt ? `<div class="item-method-steps">${escapeHtml(stepsTxt)}</div>` : ''}
+            </div>`;
+        }).join('');
+        // 向下相容舊版 r.steps
+        const legacySteps = (r.steps || '').trim();
+        const legacyHtml = (!methodDetails.length && legacySteps)
+          ? `<div class="item-steps">
+               <div class="item-label">📋 在家練習步驟</div>
+               ${escapeHtml(legacySteps)}
+             </div>`
+          : '';
+        const noteHtml = petNote
+          ? `<div class="item-petnote">
+               <div class="item-label">💭 針對 ${escapeHtml(pet.name)} 的調整</div>
+               ${escapeHtml(petNote)}
+             </div>`
+          : '';
         return `
           <div class="item">
-            <span class="item-name">${escapeHtml(r.name)}</span>
-            <span class="rating ${lab.cls}">${lab.txt}</span>
+            <div class="item-row">
+              <span class="item-name">${escapeHtml(r.name)}</span>
+              <span class="rating ${lab.cls}">${lab.txt}</span>
+            </div>
+            ${methodsHtml}
+            ${legacyHtml}
+            ${noteHtml}
           </div>`;
       }).join('');
 
@@ -221,11 +279,19 @@ function renderReport(data) {
        <div class="homework">${escapeHtml(session.homework)}</div>`
     : '';
 
+  const genderTxt = pet.gender === 'male' ? '♂' : pet.gender === 'female' ? '♀' : '';
+  const neuteredTxt = pet.neutered === 'yes' ? '已絕育' : pet.neutered === 'no' ? '未絕育' : '';
+  const metaParts = [
+    pet.breed || (pet.species==='cat'?'貓':'狗'),
+    genderTxt,
+    neuteredTxt,
+    pet.birth,
+  ].filter(Boolean).join(' · ');
   el.innerHTML = `
     <div class="pet-card">
       <div class="pet-name">${pet.species==='cat'?'🐱':'🐶'} ${escapeHtml(pet.name)}</div>
       <div class="pet-meta">
-        ${escapeHtml(pet.breed || (pet.species==='cat'?'貓':'狗'))}
+        ${escapeHtml(metaParts)}
         ${pet.ownerName ? ' · 飼主：' + escapeHtml(pet.ownerName) : ''}
       </div>
       <div class="session-meta">
@@ -237,11 +303,6 @@ function renderReport(data) {
 
     <h2>🎯 本堂訓練項目</h2>
     ${itemsHtml}
-    <div class="legend">
-      <span class="rating good">😊 表現好</span>
-      <span class="rating ok">😐 普通</span>
-      <span class="rating work">💪 需加強</span>
-    </div>
 
     ${homeworkHtml}
 
